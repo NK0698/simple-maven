@@ -5,6 +5,6 @@ public class HelloWorld {
         // Hardcoded sensitive information
         String apiKey = "12345-AssBCDE";
         System.out.println("API Key: " + apiKey);
-        System.out.println("Hello, World!");
+        // System.out.println("Hello, World!");
     }
 }
