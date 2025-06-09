@@ -1,10 +1,9 @@
-name: Build
+name: Blacklock Code Scanner
 
 on:
   push:
     branches:
       - master
-
 
 jobs:
   build:
@@ -19,28 +18,30 @@ jobs:
         with:
           java-version: 17
       - name: Cache SonarQube packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: Cache Maven packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+          
+
+      - name: Pull Blacklock Code Scanner Docker Image
+        run: docker pull blacklocksec/code-scanner:v2
+
+      - name: Run Blacklock Code Scanner
+        run: docker run --rm -v $(pwd):/app -v /bl_reports/:/bl_reports/ -e SCAN_MODE="1" blacklocksec/code-scanner:v2
       - name: Build and analyze
         env:
+          
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=CYBsgNlnA3q:tPEC -Dsonar.projectName='git-maven'
-
-      - name: Pull Blacklock Code Scanner Docker Image
-        run: docker pull blacklocksec/code-scanner:latest
-
-      - name: Run Blacklock Code Scanner
-        run: docker run --rm -v $(pwd):/app -e SONAR_PROJECTKEY="CYBsgNlnA3q:tPEC" -e SONAR_HOST_URL=${{ secrets.SONAR_HOST_URL }} -e SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}  blacklocksec/code-scanner:latest
-
+                  
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.scanner.skipJreProvisioning=true -Dsonar.projectKey=USmbioKmdS-PlHpE -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.externalIssuesReportPaths=$(echo /bl_reports/sonar_trivy.json /bl_reports/sonar_semgrep.json | tr ' ' '\n' | awk '{if (system("[ -f " $0 " ]") == 0) print $0}' | paste -sd ",")
         
